@@ -6,6 +6,7 @@ import (
 )
 
 func main() {
+	http.HandleFunc("/", HomeHandler)
 	http.HandleFunc("/login/", LoginHandler)
 	http.HandleFunc("/register/", RegisterHandler)
 	log.Println("Executando...")

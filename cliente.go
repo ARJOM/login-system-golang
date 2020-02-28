@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -25,6 +26,8 @@ type Usuario struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
+
+var logado Usuario
 
 func openConn() string {
 	connectionString := fmt.Sprintf("%s:%s@/%s", user, password, database)
@@ -88,15 +91,15 @@ func login(w http.ResponseWriter, r *http.Request) {
 	// Verificando se a consulta retornou valor
 	if u.ID != 0 {
 		log.Print("Usuário autenticado")
+		logado = u
+		// Redirecionando para a página inicial
+		http.Redirect(w, r, "/", 301)
 	} else {
 		log.Print("Usuário não cadastrado")
 	}
-
-	// Carregando o login ao final da operação
-	carregaLogin(w, r)
 }
 
-// RegisterHandler deve executar o login
+// RegisterHandler deve executar o cadastro
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.Method == "GET":
@@ -134,4 +137,32 @@ func register(w http.ResponseWriter, r *http.Request) {
 	_, insertErr := stmt.Exec(username, password)
 	checkError(insertErr)
 	log.Print("Inserido com sucesso")
+
+	// Encaminhando para login
+	http.Redirect(w, r, "/login", 301)
+}
+
+// HomeHandler verifica usuario logado
+func HomeHandler(w http.ResponseWriter, r *http.Request) {
+	if logado.ID == 0 {
+		http.Redirect(w, r, "/login", 301)
+	} else {
+		carregaHome(w, r)
+	}
+}
+
+func carregaHome(w http.ResponseWriter, r *http.Request) {
+	// tpl, _ := template.ParseFiles(".public/home.html")
+	// data := map[string]string{
+	// 	"username": logado.Username,
+	// 	"id":       strconv.Itoa(logado.ID),
+	// }
+	// w.WriteHeader(http.StatusOK)
+	// tpl.Execute(w, data)
+	json, _ := json.Marshal(logado)
+	log.Print(string(json))
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, string(json))
+
 }
